@@ -10,11 +10,11 @@ The task: "Pick up the bottle and place it on the other table". The robot walks 
 
 ## Approach
 
-The legs are handled by NVIDIA's [whole-body controller](https://github.com/NVlabs/GR00T-WholeBodyControl), an RL policy that takes a walk command and a base height. GR00T sits on top of it. It sees the head camera, joint state, instruction, and outputs arm, hand, waist targets plus the walk and height commands.
+The legs are handled by NVIDIA's [whole-body controller](https://github.com/NVlabs/GR00T-WholeBodyControl), an RL policy that takes a walk command and a base height. GR00T sits on top of it. It sees the head camera, the joint state and the instruction, and outputs arm, hand and waist targets plus the walk and height commands.
 
 ### Demos without a teleoperator
 
-NVIDIA's data pipeline expects someone in VR. Instead, we (`expert/harness.py`) drive the same teleop interface from code, and a scripted expert (`expert/pnp_bottle.py`) does the task using the true object poses from the simulator. It succeeds on 49 of 50 seeds. Episodes are saved with NVIDIA's exporter, so GR00T's fine-tuning reads them as is.
+NVIDIA's data pipeline expects someone in VR. Instead, we drive the same teleop interface from code (`expert/harness.py`), and a scripted expert (`expert/pnp_bottle.py`) does the task using the true object poses from the simulator. It succeeds on 49 of 50 seeds. Episodes are saved with NVIDIA's exporter, so GR00T's fine-tuning reads them as is.
 
 ### DART
 
@@ -22,11 +22,11 @@ A policy trained only on clean demos never sees a mistake, so small errors snowb
 
 ### Fitting in a 16 GB GPU
 
-The default fine-tune trains the whole action head and doesn't fit. Therefore, we (`scripts/finetune_g1.py`) wrap GR00T's launcher and add LoRA (rank 32) on the DiT and the VL self-attention, trains only the G1 slot of the embodiment projector, and keeps frozen weights in bf16. That gives about 50M trainable parameters and a 12.4 GB peak at batch 32. 30k steps take about 3.5 hours. LoRA is merged back when saving, so checkpoints work with GR00T's stock server.
+The default fine-tune trains the whole action head and doesn't fit. Therefore, we (`scripts/finetune_g1.py`) wrap GR00T's launcher and add LoRA (rank 32) on the DiT and the VL self-attention, train only the G1 slot of the embodiment projector, and keep frozen weights in bf16. That gives about 50M trainable parameters and a 12.4 GB peak at batch 32. 30k steps take about 3.5 hours. LoRA is merged back when saving, so checkpoints work with GR00T's stock server.
 
 ## Results
 
-Success rate on held-out seeds. An episode counts when the bottle stays upright on the target table for atleast 1 s.
+Success rate on held-out seeds. An episode counts when the bottle stays upright on the target table for at least 1 s.
 
 | Policy                     | Training data                    | Success     |
 | -------------------------- | -------------------------------- | ----------- |
@@ -66,7 +66,7 @@ Actions are sampled, so the same seed doesn't always give the same result. For e
 
 ## Setup
 
-We tested on Ubuntu 24.04 with an RTX 5080, using `uv`, `git-lfs` and `ffmpeg` , which `torchcodec` needs. Note that NVIDIA's repos are pulled in as unmodified submodules under `third_party/`.
+We tested on Ubuntu 24.04 with an RTX 5080, using `uv`, `git-lfs` and `ffmpeg`, which `torchcodec` needs. Note that NVIDIA's repos are pulled in as unmodified submodules under `third_party/`.
 
 ```bash
 git clone --recurse-submodules https://github.com/ravijo/vla-humanoid.git && cd vla-humanoid
@@ -80,15 +80,13 @@ GR00T and the simulator need different Python versions, so they run as two proce
 
 The easiest way is `scripts/pipeline.sh`, which collects the data, trains and evaluates. v1 takes about 5.5 hours (roughly 1.5 h collecting data, 3.5 h training, 0.5 h evaluating) whereas v2 reuses v1's data and takes about 4.5 hours.
 
-
-
 ```bash
 scripts/pipeline.sh v1    # clean + wrist-DART demos
 scripts/pipeline.sh v2    # adds walk-DART demos and retrains on everything
 scripts/pipeline.sh base  # GR00T N1.7 without fine-tuning, for comparison
 ```
 
-Or step by step. Training seeds start at 1000; seeds 0-999 are for evaluation.
+Or step by step. Training seeds start at 1000 whereas seeds 0-999 are for evaluation.
 
 ```bash
 # Render the simulator on the GPU without a display
