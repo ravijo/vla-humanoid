@@ -221,3 +221,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# This project: datasets, checkpoints, eval results and the simulator venv
+# are generated locally by the steps in README.md
+data/
+outputs/
+.venvs/
